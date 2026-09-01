@@ -8,12 +8,14 @@ make_api_request() {
     local data=$4
 
     local headers=(
-        -H "Authorization: Bearer $token"
         -H "Content-Type: application/json"
-        -H "X-Forwarded-For: ${url#http://}"
+        -H "X-Forwarded-For: 127.0.0.1"
         -H "X-Forwarded-Proto: https"
         -H "X-Remnawave-Client-Type: browser"
     )
+    if [ -n "$token" ]; then
+        headers+=(-H "Authorization: Bearer $token")
+    fi
 
     if [ -n "$data" ]; then
         curl -s -X "$method" "$url" "${headers[@]}" -d "$data"
@@ -464,9 +466,9 @@ create_api_token() {
     local target_dir=$3
     local token_name="${4:-subscription-page}"
 
-    local token_data='{"name":"'"$token_name"'","expiresInDays":365,"scopes":["*"]}'
-
-    local api_response=$(make_api_request "POST" "http://$domain_url/api/tokens" "$token" "$token_data")
+    local token_data='{"tokenName":"'"$token_name"'"}'
+    local api_response=
+    api_response=$(make_api_request "POST" "http://$domain_url/api/tokens" "$token" "$token_data")
 
     if [ -z "$api_response" ]; then
         echo -e "${COLOR_RED}${LANG[ERROR_CREATE_API_TOKEN]}${COLOR_RESET}" >&2

@@ -440,10 +440,7 @@ installation_panel_node_caddy() {
     echo -e "${COLOR_YELLOW}${LANG[CHECK_CONTAINERS]}${COLOR_RESET}"
     local attempts=0
     local max_attempts=5
-    until curl -s -f --max-time 30 "http://$domain_url/api/auth/status" \
-        --header 'X-Forwarded-For: 127.0.0.1' \
-        --header 'X-Forwarded-Proto: https' \
-        > /dev/null; do
+    until curl -s -f --max-time 10 "http://127.0.0.1:3001/health" > /dev/null; do
         attempts=$((attempts + 1))
         if [ "$attempts" -ge "$max_attempts" ]; then
             error "$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)"
