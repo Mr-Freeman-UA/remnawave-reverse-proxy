@@ -191,7 +191,7 @@ services:
       retries: 3
 
   remnawave:
-    image: remnawave/backend:2
+    image: remnawave/backend:2.7.4
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env, *networks]
@@ -259,7 +259,7 @@ services:
           start_period: 5s
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:latest
+    image: remnawave/subscription-page:7.2.1
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     <<: [*common, *logging, *networks]

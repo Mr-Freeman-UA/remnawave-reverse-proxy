@@ -201,7 +201,7 @@ services:
       retries: 3
 
   remnawave:
-    image: remnawave/backend:2
+    image: remnawave/backend:2.7.4
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env, *networks]
@@ -297,7 +297,7 @@ installation() {
     command: sh -c 'rm -f /dev/shm/nginx.sock && exec nginx -g "daemon off;"'
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:latest
+    image: remnawave/subscription-page:7.2.1
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     <<: [*common, *logging, *networks]
@@ -312,7 +312,7 @@ installation() {
       - '127.0.0.1:3010:3010'
 
   remnanode:
-    image: remnawave/node:latest
+    image: remnawave/node:2.8.0
     container_name: remnanode
     hostname: remnanode
     <<: [*common, *logging]
