@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SCRIPT_VERSION="2.7.4"
+SCRIPT_AUTHOR="Mr-Freeman-UA"
 UPDATE_AVAILABLE=false
 DIR_REMNAWAVE="/usr/local/remnawave_reverse/"
 LANG_FILE="${DIR_REMNAWAVE}selected_language"
@@ -446,14 +447,19 @@ install_script_if_missing() {
     local installed_file="${DIR_REMNAWAVE}remnawave_reverse"
     local bin_link="/usr/local/bin/remnawave_reverse"
 
+    # If already running as the installed script, skip checking
+    if [ "$0" = "$installed_file" ] || [ "$0" = "$bin_link" ] || [ "$0" = "remnawave_reverse" ]; then
+        return 0
+    fi
+
     if [ -f "$installed_file" ]; then
         local installed_version=$(grep -m 1 "^SCRIPT_VERSION=" "$installed_file" 2>/dev/null | cut -d'"' -f2)
-        local is_egames=$(grep -m 1 "eGamesAPI" "$installed_file" 2>/dev/null)
+        local installed_author=$(grep -m 1 "^SCRIPT_AUTHOR=" "$installed_file" 2>/dev/null | cut -d'"' -f2)
 
-        if [ "$installed_version" != "$SCRIPT_VERSION" ] || [ -n "$is_egames" ]; then
+        if [ -n "$installed_version" ] && { [ "$installed_version" != "$SCRIPT_VERSION" ] || [ "$installed_author" != "$SCRIPT_AUTHOR" ]; }; then
             echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
             printf "${COLOR_RED}${LANG[DETECTED_OLD_VERSION]:-Внимание: На сервере обнаружена другая версия: %s}${COLOR_RESET}\n" "${installed_version:-unknown}"
-            if [ -n "$is_egames" ]; then
+            if [ "$installed_author" != "$SCRIPT_AUTHOR" ]; then
                 echo -e "${COLOR_RED}${LANG[SOURCE_EGAMES]:-Источник: eGamesAPI (оригинальный скрипт)}${COLOR_RESET}"
             fi
             printf "${COLOR_GREEN}${LANG[CURRENT_SUPPORTED_VERSION]:-Текущая поддерживаемая версия: %s (Mr-Freeman-UA)}${COLOR_RESET}\n" "$SCRIPT_VERSION"
