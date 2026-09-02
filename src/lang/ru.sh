@@ -9,9 +9,16 @@ LANG[ALIAS_ACTIVATE_GLOBAL]="Алиас 'rr' теперь доступен дл�
 #Check
 LANG[ERROR_ROOT]="Скрипт нужно запускать с правами root"
 LANG[ERROR_OS]="Поддержка только Debian 11/12 и Ubuntu 22.04/24.04"
-LANG[MENU_TITLE]="REMNAWAVE REVERSE-PROXY by eGames"
+LANG[MENU_TITLE]="REMNAWAVE REVERSE-PROXY (v2.7.4)"
 LANG[AVAILABLE_UPDATE]="доступно обновление скрипта"
 LANG[VERSION_LABEL]="Версия: %s"
+LANG[DETECTED_OLD_VERSION]="Внимание: На сервере обнаружена другая версия: %s"
+LANG[SOURCE_EGAMES]="Источник: eGamesAPI (оригинальный скрипт)"
+LANG[CURRENT_SUPPORTED_VERSION]="Текущая поддерживаемая версия: %s (Mr-Freeman-UA)"
+LANG[RECOMMEND_SYNC_FILES]="Рекомендуется синхронизировать файлы в %s для корректной работы с панелью 2.7.4."
+LANG[REPLACE_PROMPT]="Заменить файлы в %s на версию 2.7.4? (y/n): "
+LANG[REPLACING_FILES]="Обновление файлов скрипта до версии %s..."
+LANG[REPLACE_SUCCESS]="✓ Файлы в %s успешно обновлены до версии %s!"
 #Install Packages
 LANG[ERROR_UPDATE_LIST]="Ошибка: Не удалось обновить список пакетов"
 LANG[ERROR_INSTALL_PACKAGES]="Ошибка: Не удалось установить необходимые пакеты"

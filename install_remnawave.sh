@@ -443,19 +443,50 @@ remove_script() {
 }
 
 install_script_if_missing() {
-    if [ ! -f "${DIR_REMNAWAVE}remnawave_reverse" ] || [ ! -f "/usr/local/bin/remnawave_reverse" ]; then
+    local installed_file="${DIR_REMNAWAVE}remnawave_reverse"
+    local bin_link="/usr/local/bin/remnawave_reverse"
+
+    if [ -f "$installed_file" ]; then
+        local installed_version=$(grep -m 1 "^SCRIPT_VERSION=" "$installed_file" 2>/dev/null | cut -d'"' -f2)
+        local is_egames=$(grep -m 1 "eGamesAPI" "$installed_file" 2>/dev/null)
+
+        if [ "$installed_version" != "$SCRIPT_VERSION" ] || [ -n "$is_egames" ]; then
+            echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+            printf "${COLOR_RED}${LANG[DETECTED_OLD_VERSION]:-Внимание: На сервере обнаружена другая версия: %s}${COLOR_RESET}\n" "${installed_version:-unknown}"
+            if [ -n "$is_egames" ]; then
+                echo -e "${COLOR_RED}${LANG[SOURCE_EGAMES]:-Источник: eGamesAPI (оригинальный скрипт)}${COLOR_RESET}"
+            fi
+            printf "${COLOR_GREEN}${LANG[CURRENT_SUPPORTED_VERSION]:-Текущая поддерживаемая версия: %s (Mr-Freeman-UA)}${COLOR_RESET}\n" "$SCRIPT_VERSION"
+            printf "${COLOR_YELLOW}${LANG[RECOMMEND_SYNC_FILES]:-Рекомендуется синхронизировать файлы в %s для корректной работы с панелью 2.7.4.}${COLOR_RESET}\n" "${DIR_REMNAWAVE}"
+            echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+            reading "$(printf "${LANG[REPLACE_PROMPT]:-Заменить файлы в %s на версию 2.7.4? (y/n): }" "${DIR_REMNAWAVE}")" replace_confirm
+            if [[ "$replace_confirm" == "y" || "$replace_confirm" == "Y" || -z "$replace_confirm" ]]; then
+                printf "${COLOR_YELLOW}${LANG[REPLACING_FILES]:-Обновление файлов скрипта до версии %s...}${COLOR_RESET}\n" "$SCRIPT_VERSION"
+                rm -rf "${DIR_REMNAWAVE}nginx" "${DIR_REMNAWAVE}caddy" "${DIR_REMNAWAVE}api" "${DIR_REMNAWAVE}modules" "${DIR_REMNAWAVE}lang"
+                if ! download_with_mirrors "$SCRIPT_URL" "$installed_file" "script"; then
+                    wget -q -O "$installed_file" "$SCRIPT_URL" 2>/dev/null || true
+                fi
+                chmod +x "$installed_file"
+                ln -sf "$installed_file" "$bin_link"
+                printf "${COLOR_GREEN}${LANG[REPLACE_SUCCESS]:-✓ Файлы в %s успешно обновлены до версии %s!}${COLOR_RESET}\n" "${DIR_REMNAWAVE}" "$SCRIPT_VERSION"
+                sleep 1
+            fi
+        fi
+    fi
+
+    if [ ! -f "$installed_file" ] || [ ! -f "$bin_link" ]; then
         mkdir -p "${DIR_REMNAWAVE}"
         
         # Use download_with_mirrors for reliable download
-        if ! download_with_mirrors "$SCRIPT_URL" "${DIR_REMNAWAVE}remnawave_reverse" "script"; then
+        if ! download_with_mirrors "$SCRIPT_URL" "$installed_file" "script"; then
             # Fallback: try direct download
-            if ! wget -q -O "${DIR_REMNAWAVE}remnawave_reverse" "$SCRIPT_URL" 2>/dev/null; then
+            if ! wget -q -O "$installed_file" "$SCRIPT_URL" 2>/dev/null; then
                 exit 1
             fi
         fi
         
-        chmod +x "${DIR_REMNAWAVE}remnawave_reverse"
-        ln -sf "${DIR_REMNAWAVE}remnawave_reverse" /usr/local/bin/remnawave_reverse
+        chmod +x "$installed_file"
+        ln -sf "$installed_file" "$bin_link"
     fi
 
     local bashrc_file="/etc/bash.bashrc"
