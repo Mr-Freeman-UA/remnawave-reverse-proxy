@@ -37,6 +37,7 @@ LANG[PANEL_NODE_SINGLE_SERVER_RECOMMENDATION]="For optimal results and stable op
 LANG[CONFIRM_CONTINUE]="Continue? (y/n):"
 #Update Script
 LANG[UPDATING_LANG_FILES]="Updating language files..."
+LANG[FORCE_SYNC_PROMPT]="Re-download and sync all modules from GitHub? (y/n): "
 LANG[LANG_FILE_UPDATED]="✓ %s updated"
 LANG[LANG_FILE_UPDATE_FAILED]="✗ Failed to update %s"
 LANG[UPDATING_MODULES]="Updating modules..."

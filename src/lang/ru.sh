@@ -45,6 +45,7 @@ LANG[PANEL_NODE_SINGLE_SERVER_WARNING]="Этот способ установки
 LANG[PANEL_NODE_SINGLE_SERVER_RECOMMENDATION]="Для оптимального результата и стабильной работы, пожалуйста, выбирайте методы установки Только панель или Только нода в зависимости от ваших потребностей."
 LANG[CONFIRM_CONTINUE]="Продолжить? (y/n):"
 #Update Script
+LANG[FORCE_SYNC_PROMPT]="Обновить и перезагрузить все модули с GitHub? (y/n): "
 LANG[UPDATING_LANG_FILES]="Обновление языковых файлов..."
 LANG[LANG_FILE_UPDATED]="✓ %s обновлён"
 LANG[LANG_FILE_UPDATE_FAILED]="✗ Не удалось обновить %s"

@@ -229,18 +229,20 @@ update_remnawave_reverse() {
     if [ -f "$update_script" ]; then
         if [ "$SCRIPT_VERSION" = "$remote_version" ]; then
             printf "${COLOR_GREEN}${LANG[LATEST_VERSION]}${COLOR_RESET}\n" "$SCRIPT_VERSION"
-            return 0
+            reading "${LANG[FORCE_SYNC_PROMPT]}" force_sync
+            if [[ "$force_sync" != "y" && "$force_sync" != "Y" ]]; then
+                return 0
+            fi
+        else
+            printf "${COLOR_YELLOW}${LANG[UPDATE_AVAILABLE]}${COLOR_RESET}\n" "$remote_version" "$SCRIPT_VERSION"
+            reading "${LANG[UPDATE_CONFIRM]}" confirm_update
+            if [[ "$confirm_update" != "y" && "$confirm_update" != "Y" ]]; then
+                echo -e "${COLOR_YELLOW}${LANG[UPDATE_CANCELLED]}${COLOR_RESET}"
+                return 0
+            fi
         fi
     else
         echo -e "${COLOR_YELLOW}${LANG[LOCAL_FILE_NOT_FOUND]}${COLOR_RESET}"
-    fi
-
-    printf "${COLOR_YELLOW}${LANG[UPDATE_AVAILABLE]}${COLOR_RESET}\n" "$remote_version" "$SCRIPT_VERSION"
-    reading "${LANG[UPDATE_CONFIRM]}" confirm_update
-
-    if [[ "$confirm_update" != "y" && "$confirm_update" != "Y" ]]; then
-        echo -e "${COLOR_YELLOW}${LANG[UPDATE_CANCELLED]}${COLOR_RESET}"
-        return 0
     fi
 
     mkdir -p "${DIR_REMNAWAVE}"
@@ -276,7 +278,7 @@ update_remnawave_reverse() {
     done
 
     # Modules (common)
-    local common_modules=("add_node" "manage_panel" "warp" "ipv6" "selfsteal_templates")
+    local common_modules=("add_node" "manage_panel" "warp" "ipv6" "selfsteal_templates" "certificates")
     for module in "${common_modules[@]}"; do
         local module_file="${DIR_REMNAWAVE}modules/${module}.sh"
         if [ -f "$module_file" ]; then
