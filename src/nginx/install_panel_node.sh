@@ -53,9 +53,10 @@ install_panel_node_nginx() {
     METRICS_USER=$(generate_user)
     METRICS_PASS=$(generate_user)
 
+    mkdir -p /opt/remnawave && cd /opt/remnawave
     APP_SECRET=$(openssl rand -hex 64)
 
-    cat > .env <<EOL
+    cat > /opt/remnawave/.env <<EOL
 ### APP ###
 APP_PORT=3000
 METRICS_PORT=3001
@@ -146,7 +147,7 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
 EOL
 
-    cat > docker-compose.yml <<EOL
+    cat > /opt/remnawave/docker-compose.yml <<EOL
 x-common: &common
   ulimits:
     nofile:
@@ -520,9 +521,7 @@ EOL
     echo -e "${COLOR_YELLOW}${LANG[STARTING_PANEL_NODE]}${COLOR_RESET}"
     sleep 1
     cd /opt/remnawave
-    docker compose up -d > /dev/null 2>&1 &
-
-    spinner $! "${LANG[WAITING]}"
+    docker compose up -d
 
     remnawave_network_subnet=172.30.0.0/16
     ufw allow from "$remnawave_network_subnet" to any port 2222 proto tcp > /dev/null 2>&1

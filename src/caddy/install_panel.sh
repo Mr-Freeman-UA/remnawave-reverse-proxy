@@ -42,10 +42,11 @@ install_panel_caddy() {
     METRICS_USER=$(generate_user)
     METRICS_PASS=$(generate_user)
 
+    mkdir -p /opt/remnawave && cd /opt/remnawave
     APP_SECRET=$(openssl rand -hex 64)
     API_TOKEN=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
 
-    cat > .env <<EOL
+    cat > /opt/remnawave/.env <<EOL
 ### APP ###
 APP_PORT=3000
 METRICS_PORT=3001
@@ -136,7 +137,7 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
 EOL
 
-    cat > docker-compose.yml <<EOL
+    cat > /opt/remnawave/docker-compose.yml <<EOL
 x-common: &common
   ulimits:
     nofile:
@@ -363,9 +364,7 @@ installation_panel_caddy() {
     sleep 1
     cd /opt/remnawave
     ufw allow 80/tcp comment 'HTTP' > /dev/null 2>&1
-    docker compose up -d > /dev/null 2>&1 &
-
-    spinner $! "${LANG[WAITING]}"
+    docker compose up -d
 
     local domain_url="127.0.0.1:3000"
     local target_dir="/opt/remnawave"
