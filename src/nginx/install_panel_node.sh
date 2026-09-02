@@ -535,15 +535,27 @@ EOL
 
     echo -e "${COLOR_YELLOW}${LANG[CHECK_CONTAINERS]}${COLOR_RESET}"
     local attempts=0
-    local max_attempts=5
-    until curl -s -f --max-time 10 "http://127.0.0.1:3001/health" > /dev/null; do
+    local max_attempts=30
+    local is_ready=false
+    while [ $attempts -lt $max_attempts ]; do
         attempts=$((attempts + 1))
-        if [ "$attempts" -ge "$max_attempts" ]; then
-            error "$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)"
+        if curl -s -f --max-time 3 "http://127.0.0.1:3001/health" > /dev/null 2>&1 || \
+           curl -s -f --max-time 3 "http://127.0.0.1:3000/api/auth/status" > /dev/null 2>&1; then
+            is_ready=true
+            echo -e "${COLOR_GREEN}✓ Контейнеры готовы к работе!${COLOR_RESET}"
+            break
         fi
-        echo -e "${COLOR_RED}$(printf "${LANG[CONTAINERS_NOT_READY_ATTEMPT]}" $attempts $max_attempts)${COLOR_RESET}"
-        sleep 60
+        printf "${COLOR_YELLOW}Ожидание готовности панели (попытка %d из %d)...${COLOR_RESET}\r" "$attempts" "$max_attempts"
+        sleep 4
     done
+    echo ""
+
+    if [ "$is_ready" != "true" ]; then
+        echo -e "${COLOR_RED}$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Логи контейнеров для диагностики:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs --tail 30
+        exit 1
+    fi
 
     # Register Remnawave
     local token=$(register_remnawave "$domain_url" "$SUPERADMIN_USERNAME" "$SUPERADMIN_PASSWORD")
