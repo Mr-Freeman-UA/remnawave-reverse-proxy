@@ -160,7 +160,7 @@ x-env: &env
 
 services:
   remnawave-db:
-    image: postgres:17-alpine
+    image: postgres:18.4
     container_name: 'remnawave-db'
     hostname: remnawave-db
     shm_size: 512mb
@@ -173,7 +173,7 @@ services:
     ports:
       - '127.0.0.1:6767:5432'
     volumes:
-      - remnawave-db-data:/var/lib/postgresql/data
+      - remnawave-db-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U \${POSTGRES_USER:-postgres} -d \${POSTGRES_DB:-postgres}']
       interval: 3s
@@ -392,8 +392,14 @@ installation_panel_caddy() {
 
     if [ "$is_ready" != "true" ]; then
         echo -e "${COLOR_RED}$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}Логи контейнеров для диагностики:${COLOR_RESET}"
-        docker compose -f /opt/remnawave/docker-compose.yml logs --tail 30
+        echo -e "${COLOR_YELLOW}Статус контейнеров:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml ps -a
+        echo -e "${COLOR_YELLOW}Логи remnawave:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave --tail 40
+        echo -e "${COLOR_YELLOW}Логи remnawave-db:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave-db --tail 40
+        echo -e "${COLOR_YELLOW}Логи remnawave-redis:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave-redis --tail 40
         exit 1
     fi
 
