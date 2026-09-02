@@ -476,7 +476,7 @@ create_api_token() {
     fi
 
     local api_token
-    api_token=$(echo "$api_response" | jq -r '.response.token // .response.token // ""')
+    api_token=$(echo "$api_response" | jq -r '.response.token // .response.apiToken // .token // ""')
     if [ -z "$api_token" ] || [ "$api_token" = "null" ]; then
         echo -e "${COLOR_RED}${LANG[ERROR_CREATE_API_TOKEN]}: $(echo "$api_response" | jq -r '.message // "Unknown error"')" >&2
         return 1
