@@ -917,10 +917,32 @@ show_custom_legiz_menu() {
 }
 
 manage_custom_legiz() {
+    if [ ! -d "/opt/remnawave" ]; then
+        echo -e ""
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        echo -e "${COLOR_RED}${LANG[FEATURE_ONLY_FOR_PANEL]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}${LANG[NODE_ONLY_WARNING]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        sleep 3
+        return 0
+    fi
+
     show_custom_legiz_menu
     reading "${LANG[LEGIZ_EXTENSIONS_PROMPT]}" LEGIZ_OPTION
     case $LEGIZ_OPTION in
         1)
+            if ! docker ps -a --filter "name=remnawave-subscription-page" --format '{{.Names}}' | grep -q "^remnawave-subscription-page$"; then
+                echo -e ""
+                echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+                echo -e "${COLOR_RED}${LANG[FEATURE_ONLY_FOR_PANEL]}${COLOR_RESET}"
+                printf "${COLOR_YELLOW}${LANG[CONTAINER_NOT_FOUND]}\n${COLOR_RESET}" "remnawave-subscription-page"
+                echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+                sleep 3
+                log_clear
+                manage_custom_legiz
+                return 1
+            fi
+
             if ! command -v yq >/dev/null 2>&1; then
                 echo -e "${COLOR_YELLOW}${LANG[INSTALLING_YQ]}${COLOR_RESET}"
                 
@@ -1057,7 +1079,7 @@ manage_sub_page_upload() {
         printf "${COLOR_RED}${LANG[CONTAINER_NOT_FOUND]}${COLOR_RESET}\n" "remnawave-subscription-page"
         sleep 2
         log_clear
-        exit 1
+        return 1
     fi
     
     show_sub_page_menu

@@ -66,7 +66,12 @@ show_manage_panel_menu() {
 
 run_remnawave_cli() {
     if ! docker ps --format '{{.Names}}' | grep -q '^remnawave$'; then
-        echo -e "${COLOR_YELLOW}${LANG[CONTAINER_NOT_RUNNING]}${COLOR_RESET}"
+        echo -e ""
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        echo -e "${COLOR_RED}⚠️  ${LANG[FEATURE_ONLY_FOR_PANEL]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}   ${LANG[NODE_ONLY_WARNING]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        sleep 2
         return 1
     fi
 
@@ -243,17 +248,18 @@ manage_panel_access() {
 }
 
 open_panel_access() {
-    local dir=""
-    if [ -d "/opt/remnawave" ]; then
-        dir="/opt/remnawave"
-    elif [ -d "/opt/remnanode" ]; then
-        dir="/opt/remnanode"
-    else
-        echo -e "${COLOR_RED}${LANG[DIR_NOT_FOUND]}${COLOR_RESET}"
-        exit 1
+    if [ ! -d "/opt/remnawave" ]; then
+        echo -e ""
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        echo -e "${COLOR_RED}⚠️  ${LANG[PANEL_ACCESS_ONLY_FULL]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}   ${LANG[NODE_ONLY_WARNING]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        sleep 2
+        return 1
     fi
 
-    cd "$dir" || { echo -e "${COLOR_RED}${LANG[CHANGE_DIR_FAILED]} $dir${COLOR_RESET}"; exit 1; }
+    local dir="/opt/remnawave"
+    cd "$dir" || { echo -e "${COLOR_RED}${LANG[CHANGE_DIR_FAILED]} $dir${COLOR_RESET}"; return 1; }
 
     local webserver=""
     if [ -f "nginx.conf" ]; then
@@ -371,17 +377,18 @@ open_panel_access() {
 }
 
 close_panel_access() {
-    local dir=""
-    if [ -d "/opt/remnawave" ]; then
-        dir="/opt/remnawave"
-    elif [ -d "/opt/remnanode" ]; then
-        dir="/opt/remnanode"
-    else
-        echo -e "${COLOR_RED}${LANG[DIR_NOT_FOUND]}${COLOR_RESET}"
-        exit 1
+    if [ ! -d "/opt/remnawave" ]; then
+        echo -e ""
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        echo -e "${COLOR_RED}⚠️  ${LANG[PANEL_ACCESS_ONLY_FULL]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}   ${LANG[NODE_ONLY_WARNING]}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
+        sleep 2
+        return 1
     fi
 
-    cd "$dir" || { echo -e "${COLOR_RED}${LANG[CHANGE_DIR_FAILED]} $dir${COLOR_RESET}"; exit 1; }
+    local dir="/opt/remnawave"
+    cd "$dir" || { echo -e "${COLOR_RED}${LANG[CHANGE_DIR_FAILED]} $dir${COLOR_RESET}"; return 1; }
 
     echo -e "${COLOR_YELLOW}${LANG[PORT_8443_CLOSE]}${COLOR_RESET}"
 

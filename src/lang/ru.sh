@@ -19,6 +19,9 @@ LANG[RECOMMEND_SYNC_FILES]="Рекомендуется синхронизиро�
 LANG[REPLACE_PROMPT]="Заменить файлы в %s на версию 2.7.4? (y/n): "
 LANG[REPLACING_FILES]="Обновление файлов скрипта до версии %s..."
 LANG[REPLACE_SUCCESS]="✓ Файлы в %s успешно обновлены до версии %s!"
+LANG[FEATURE_ONLY_FOR_PANEL]="⚠️  Данная функция предназначена только для сервера с панелью Remnawave."
+LANG[NODE_ONLY_WARNING]="На сервере с отдельной нодой эта функция недоступна."
+LANG[PANEL_ACCESS_ONLY_FULL]="Доступ через порт 8443 доступен только для совместной установки панели и ноды."
 #Install Packages
 LANG[ERROR_UPDATE_LIST]="Ошибка: Не удалось обновить список пакетов"
 LANG[ERROR_INSTALL_PACKAGES]="Ошибка: Не удалось установить необходимые пакеты"
