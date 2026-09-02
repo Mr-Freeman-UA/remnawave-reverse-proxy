@@ -115,7 +115,7 @@ installation_node() {
     command: sh -c 'rm -f /dev/shm/nginx.sock && exec nginx -g "daemon off;"'
 
   remnanode:
-    image: remnawave/node:3
+    image: remnawave/node:latest
     container_name: remnanode
     hostname: remnanode
     <<: [*common, *logging]

@@ -303,7 +303,7 @@ installation() {
       - '127.0.0.1:3010:3010'
 
   remnanode:
-    image: remnawave/node:3
+    image: remnawave/node:latest
     container_name: remnanode
     hostname: remnanode
     <<: [*common, *logging]

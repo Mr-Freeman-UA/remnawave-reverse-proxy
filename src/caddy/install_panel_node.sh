@@ -270,7 +270,7 @@ services:
         condition: service_healthy
 
   remnanode:
-    image: remnawave/node:3
+    image: remnawave/node:latest
     container_name: remnanode
     hostname: remnanode
     <<: [*common, *logging]
