@@ -25,13 +25,13 @@ manage_warp_native() {
                 manage_warp_native
                 return
             fi
-            bash <(curl -fsSL https://raw.githubusercontent.com/distillium/warp-native/main/install.sh)
+            bash <(curl -fsSL https://raw.githubusercontent.com/Mr-Freeman-UA/warp-native/main/install.sh)
             sleep 2
             log_clear
             manage_warp_native
             ;;
         2)
-            bash <(curl -fsSL https://raw.githubusercontent.com/distillium/warp-native/main/uninstall.sh)
+            bash <(curl -fsSL https://raw.githubusercontent.com/Mr-Freeman-UA/warp-native/main/uninstall.sh)
             sleep 2
             log_clear
             manage_warp_native

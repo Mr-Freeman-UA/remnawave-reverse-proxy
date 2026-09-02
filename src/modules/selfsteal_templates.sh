@@ -28,8 +28,8 @@ randomhtml() {
 
     template_urls=(
         "https://github.com/Mr-Freeman-UA/simple-web-templates/archive/refs/heads/main.zip"
-        "https://github.com/distillium/sni-templates/archive/refs/heads/main.zip"
-        "https://github.com/prettyleaf/nothing-sni/archive/refs/heads/main.zip"
+        "https://github.com/Mr-Freeman-UA/sni-templates/archive/refs/heads/main.zip"
+        "https://github.com/Mr-Freeman-UA/nothing-sni/archive/refs/heads/main.zip"
     )
 
     if [ -z "$template_source" ]; then

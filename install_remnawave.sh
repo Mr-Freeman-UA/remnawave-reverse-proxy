@@ -1096,8 +1096,8 @@ manage_sub_page_upload() {
 
             echo -e "${COLOR_YELLOW}${LANG[UPLOADING_SUB_PAGE]}${COLOR_RESET}"
             echo -e ""
-            local primary_index_url="https://raw.githubusercontent.com/legiz-ru/Orion/refs/heads/main/index.html"
-            local fallback_index_url="https://cdn.jsdelivr.net/gh/legiz-ru/Orion@main/index.html"
+            local primary_index_url="https://raw.githubusercontent.com/Mr-Freeman-UA/Orion/refs/heads/main/index.html"
+            local fallback_index_url="https://cdn.jsdelivr.net/gh/Mr-Freeman-UA/Orion@main/index.html"
             if ! download_with_fallback "$primary_index_url" "$fallback_index_url" "$index_file"; then
                 echo -e "${COLOR_RED}${LANG[ERROR_FETCH_SUB_PAGE]}${COLOR_RESET}"
                 sleep 2
@@ -2528,7 +2528,7 @@ case $OPTION in
         if [ -f ~/backup-restore.sh ]; then
             rw-backup
         else
-            curl -o ~/backup-restore.sh https://raw.githubusercontent.com/distillium/remnawave-backup-restore/main/backup-restore.sh && chmod +x ~/backup-restore.sh && ~/backup-restore.sh
+            curl -o ~/backup-restore.sh https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-backup-restore/main/backup-restore.sh && chmod +x ~/backup-restore.sh && ~/backup-restore.sh
         fi
         sleep 2
         log_clear
