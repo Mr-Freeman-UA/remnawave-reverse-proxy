@@ -204,7 +204,7 @@ services:
         condition: service_healthy
 
   remnawave-redis:
-    image: valkey/valkey:9.0.3-alpine
+    image: valkey/valkey:9-alpine
     container_name: remnawave-redis
     hostname: remnawave-redis
     <<: [*common, *logging, *networks]
