@@ -1833,53 +1833,352 @@ EOL
     fi
 }
 
-#Manage Certificates
+#Detect Server Configuration for Domain Management
+detect_server_config() {
+    SERVER_TYPE="none"
+    WEBSERVER_TYPE="Nginx"
+    SERVER_DIR=""
+    PANEL_DOMAIN_CURRENT=""
+    SUB_DOMAIN_CURRENT=""
+    NODE_DOMAIN_CURRENT=""
+    DNS_PROVIDER_CURRENT="Не определен"
+
+    if [ -d "/opt/remnawave" ]; then
+        SERVER_DIR="/opt/remnawave"
+        if [ -f "/opt/remnawave/nginx.conf" ]; then
+            WEBSERVER_TYPE="Nginx"
+            PANEL_DOMAIN_CURRENT=$(grep -B 20 "proxy_pass http://remnawave" /opt/remnawave/nginx.conf 2>/dev/null | grep "server_name" | grep -v "server_name _" | awk '{print $2}' | sed 's/;//' | head -n 1)
+            SUB_DOMAIN_CURRENT=$(grep -B 20 "proxy_pass http://json" /opt/remnawave/nginx.conf 2>/dev/null | grep "server_name" | grep -v "server_name _" | awk '{print $2}' | sed 's/;//' | head -n 1)
+            NODE_DOMAIN_CURRENT=$(grep -B 10 "root /var/www/html" /opt/remnawave/nginx.conf 2>/dev/null | grep "server_name" | grep -v "server_name _" | awk '{print $2}' | sed 's/;//' | head -n 1)
+        elif [ -f "/opt/remnawave/Caddyfile" ]; then
+            WEBSERVER_TYPE="Caddy"
+            PANEL_DOMAIN_CURRENT=$(grep "PANEL_DOMAIN=" /opt/remnawave/docker-compose.yml 2>/dev/null | head -n 1 | sed 's/.*PANEL_DOMAIN=//; s/[[:space:]]*$//')
+            SUB_DOMAIN_CURRENT=$(grep "SUB_DOMAIN=" /opt/remnawave/docker-compose.yml 2>/dev/null | head -n 1 | sed 's/.*SUB_DOMAIN=//; s/[[:space:]]*$//')
+            NODE_DOMAIN_CURRENT=$(grep "SELF_STEAL_DOMAIN=" /opt/remnawave/docker-compose.yml 2>/dev/null | head -n 1 | sed 's/.*SELF_STEAL_DOMAIN=//; s/[[:space:]]*$//')
+        fi
+
+        if grep -q "remnanode:" /opt/remnawave/docker-compose.yml 2>/dev/null || [ -n "$NODE_DOMAIN_CURRENT" ]; then
+            SERVER_TYPE="panel_node"
+        else
+            SERVER_TYPE="panel_only"
+        fi
+    elif [ -d "/opt/remnanode" ]; then
+        SERVER_DIR="/opt/remnanode"
+        SERVER_TYPE="node_only"
+        if [ -f "/opt/remnanode/nginx.conf" ]; then
+            WEBSERVER_TYPE="Nginx"
+            NODE_DOMAIN_CURRENT=$(grep -B 10 "root /var/www/html" /opt/remnanode/nginx.conf 2>/dev/null | grep "server_name" | grep -v "server_name _" | awk '{print $2}' | sed 's/;//' | head -n 1)
+        elif [ -f "/opt/remnanode/Caddyfile" ]; then
+            WEBSERVER_TYPE="Caddy"
+            NODE_DOMAIN_CURRENT=$(grep "SELF_STEAL_DOMAIN=" /opt/remnanode/docker-compose.yml 2>/dev/null | head -n 1 | sed 's/.*SELF_STEAL_DOMAIN=//; s/[[:space:]]*$//')
+        fi
+    fi
+
+    if grep -rq "dns_cloudflare" /etc/letsencrypt/renewal/ 2>/dev/null; then
+        DNS_PROVIDER_CURRENT="Cloudflare DNS-01 (Wildcard)"
+    elif grep -rq "dns-gcore" /etc/letsencrypt/renewal/ 2>/dev/null; then
+        DNS_PROVIDER_CURRENT="Gcore DNS-01 (Wildcard)"
+    elif grep -rq "authenticator = standalone" /etc/letsencrypt/renewal/ 2>/dev/null || grep -rq "authenticator = webroot" /etc/letsencrypt/renewal/ 2>/dev/null; then
+        DNS_PROVIDER_CURRENT="ACME HTTP-01 (Standalone)"
+    else
+        DNS_PROVIDER_CURRENT="Не настроен / None"
+    fi
+}
+
+#Manage Certificates Menu
 show_manage_certificates() {
+    detect_server_config
+
     echo -e ""
-    echo -e "${COLOR_GREEN}${LANG[MENU_8]}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}      ${LANG[CERT_MENU_TITLE]:-Управление доменами и сертификатами}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+
+    local server_type_str="Не установлен"
+    case $SERVER_TYPE in
+        panel_node) server_type_str="${COLOR_GREEN}Панель + Нода${COLOR_RESET}" ;;
+        panel_only) server_type_str="${COLOR_GREEN}Только Панель${COLOR_RESET}" ;;
+        node_only)  server_type_str="${COLOR_GREEN}Только Нода${COLOR_RESET}" ;;
+        *)          server_type_str="${COLOR_YELLOW}Не установлена${COLOR_RESET}" ;;
+    esac
+
+    echo -e " ${COLOR_WHITE}${LANG[CERT_SERVER_TYPE_LABEL]:-Тип установки:}${COLOR_RESET} $server_type_str"
+    echo -e " ${COLOR_WHITE}${LANG[CERT_WEBSERVER_LABEL]:-Веб-сервер:}${COLOR_RESET}   ${COLOR_YELLOW}${WEBSERVER_TYPE}${COLOR_RESET}"
+    echo -e " ${COLOR_WHITE}${LANG[CERT_DNS_PROVIDER_LABEL]:-DNS-провайдер:}${COLOR_RESET} ${COLOR_YELLOW}${DNS_PROVIDER_CURRENT}${COLOR_RESET}"
+
+    if [ -n "$PANEL_DOMAIN_CURRENT" ] || [ -n "$SUB_DOMAIN_CURRENT" ] || [ -n "$NODE_DOMAIN_CURRENT" ]; then
+        echo -e " ${COLOR_WHITE}${LANG[CERT_ACTIVE_DOMAINS_LABEL]:-Настроенные домены:}${COLOR_RESET}"
+        if [ -n "$PANEL_DOMAIN_CURRENT" ]; then
+            local p_days
+            p_days=$(check_cert_expiry "$PANEL_DOMAIN_CURRENT" 2>/dev/null)
+            echo -e "   • ${COLOR_WHITE}Панель:${COLOR_RESET}     ${COLOR_GREEN}${PANEL_DOMAIN_CURRENT}${COLOR_RESET} ${p_days:+${COLOR_GRAY}(осталось $p_days дн.)${COLOR_RESET}}"
+        fi
+        if [ -n "$SUB_DOMAIN_CURRENT" ]; then
+            local s_days
+            s_days=$(check_cert_expiry "$SUB_DOMAIN_CURRENT" 2>/dev/null)
+            echo -e "   • ${COLOR_WHITE}Подписка:${COLOR_RESET}   ${COLOR_GREEN}${SUB_DOMAIN_CURRENT}${COLOR_RESET} ${s_days:+${COLOR_GRAY}(осталось $s_days дн.)${COLOR_RESET}}"
+        fi
+        if [ -n "$NODE_DOMAIN_CURRENT" ]; then
+            local n_days
+            n_days=$(check_cert_expiry "$NODE_DOMAIN_CURRENT" 2>/dev/null)
+            echo -e "   • ${COLOR_WHITE}Маскировка:${COLOR_RESET}  ${COLOR_GREEN}${NODE_DOMAIN_CURRENT}${COLOR_RESET} ${n_days:+${COLOR_GRAY}(осталось $n_days дн.)${COLOR_RESET}}"
+        fi
+    fi
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
     echo -e ""
-    echo -e "${COLOR_YELLOW}1. ${LANG[CERT_UPDATE]}${COLOR_RESET}"
-    echo -e "${COLOR_YELLOW}2. ${LANG[CERT_GENERATE]}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}1. ${LANG[CERT_MENU_OPT_CHANGE_DOMAINS]:-Изменить домены сервера (с выпуском сертификатов и авто-настройкой)}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}2. ${LANG[CERT_MENU_OPT_RENEW]:-Обновить текущие сертификаты (Renew)}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}3. ${LANG[CERT_MENU_OPT_GENERATE_ONLY]:-Сгенерировать сертификат для домена (без изменения конфигурации)}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}4. ${LANG[CERT_MENU_OPT_SWITCH_DNS]:-Сменить / настроить DNS-провайдера (Cloudflare / Gcore / ACME)}${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_YELLOW}0. ${LANG[EXIT]}${COLOR_RESET}"
     echo -e ""
 }
 
 manage_certificates() {
+    if ! command -v certbot >/dev/null 2>&1; then
+        install_packages || {
+            echo -e "${COLOR_RED}${LANG[ERROR_INSTALL_CERTBOT]}${COLOR_RESET}"
+            sleep 2
+            return 1
+        }
+    fi
+
     show_manage_certificates
-    reading "${LANG[CERT_PROMPT1]}" CERT_OPTION
+    reading "${LANG[PROMPT_ACTION]}" CERT_OPTION
     case $CERT_OPTION in
         1)
-            if ! command -v certbot >/dev/null 2>&1; then
-                install_packages || {
-                    echo -e "${COLOR_RED}${LANG[ERROR_INSTALL_CERTBOT]}${COLOR_RESET}"
-                    log_clear
-                    exit 1
-                }
-            fi
-            update_current_certificates
+            change_server_domains
             log_clear
+            manage_certificates
             ;;
         2)
-            if ! command -v certbot >/dev/null 2>&1; then
-                install_packages || {
-                    echo -e "${COLOR_RED}${LANG[ERROR_INSTALL_CERTBOT]}${COLOR_RESET}"
-                    log_clear
-                    exit 1
-                }
-            fi
+            update_current_certificates
+            log_clear
+            manage_certificates
+            ;;
+        3)
             generate_new_certificates
             log_clear
+            manage_certificates
+            ;;
+        4)
+            switch_dns_provider
+            log_clear
+            manage_certificates
             ;;
         0)
             echo -e "${COLOR_YELLOW}${LANG[EXIT]}${COLOR_RESET}"
-            remnawave_reverse
+            return 0
             ;;
         *)
             echo -e "${COLOR_YELLOW}${LANG[CERT_INVALID_CHOICE]}${COLOR_RESET}"
-            exit 1
+            sleep 2
+            log_clear
+            manage_certificates
             ;;
     esac
+}
+
+change_server_domains() {
+    detect_server_config
+
+    if [ "$SERVER_TYPE" = "none" ]; then
+        echo -e "${COLOR_RED}Компоненты Remnawave не найдены в /opt/remnawave или /opt/remnanode!${COLOR_RESET}"
+        sleep 2
+        return 1
+    fi
+
+    echo -e ""
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}       ${LANG[CHANGE_DOMAINS_TITLE]:-Мастер смены доменов сервера}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e ""
+
+    local NEW_PANEL_DOMAIN=""
+    local NEW_SUB_DOMAIN=""
+    local NEW_NODE_DOMAIN=""
+
+    if [ "$SERVER_TYPE" = "panel_node" ] || [ "$SERVER_TYPE" = "panel_only" ]; then
+        echo -e "${COLOR_WHITE}${LANG[CURRENT_PANEL_DOMAIN_LABEL]:-Текущий домен панели:}${COLOR_RESET} ${COLOR_YELLOW}${PANEL_DOMAIN_CURRENT:-Не задан}${COLOR_RESET}"
+        reading "${LANG[ENTER_NEW_PANEL_DOMAIN]:-Введите новый домен панели (например, panel.example.com):}" NEW_PANEL_DOMAIN
+
+        echo -e "${COLOR_WHITE}${LANG[CURRENT_SUB_DOMAIN_LABEL]:-Текущий домен подписки:}${COLOR_RESET} ${COLOR_YELLOW}${SUB_DOMAIN_CURRENT:-Не задан}${COLOR_RESET}"
+        reading "${LANG[ENTER_NEW_SUB_DOMAIN]:-Введите новый домен страницы подписки (например, sub.example.com):}" NEW_SUB_DOMAIN
+    fi
+
+    if [ "$SERVER_TYPE" = "panel_node" ] || [ "$SERVER_TYPE" = "node_only" ]; then
+        echo -e "${COLOR_WHITE}${LANG[CURRENT_NODE_DOMAIN_LABEL]:-Текущий домен маскировки ноды:}${COLOR_RESET} ${COLOR_YELLOW}${NODE_DOMAIN_CURRENT:-Не задан}${COLOR_RESET}"
+        reading "${LANG[ENTER_NEW_NODE_DOMAIN]:-Введите новый домен маскировки ноды (например, node.example.com):}" NEW_NODE_DOMAIN
+    fi
+
+    echo -e ""
+    echo -e "${COLOR_YELLOW}${LANG[CERT_METHOD_PROMPT]}${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_YELLOW}1. ${LANG[CERT_METHOD_CF]}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}2. ${LANG[CERT_METHOD_ACME]}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}3. ${LANG[CERT_METHOD_GCORE]}${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_YELLOW}0. ${LANG[EXIT]}${COLOR_RESET}"
+    echo -e ""
+    reading "${LANG[CERT_METHOD_CHOOSE]}" CERT_METHOD
+
+    if [ "$CERT_METHOD" == "0" ]; then
+        echo -e "${COLOR_YELLOW}${LANG[EXIT]}${COLOR_RESET}"
+        return 0
+    fi
+
+    local LETSENCRYPT_EMAIL=""
+    if [ "$CERT_METHOD" == "2" ] || [ "$CERT_METHOD" == "3" ]; then
+        reading "${LANG[EMAIL_PROMPT]}" LETSENCRYPT_EMAIL
+    fi
+
+    local domains_to_cert=()
+    [ -n "$NEW_PANEL_DOMAIN" ] && domains_to_cert+=("$NEW_PANEL_DOMAIN")
+    [ -n "$NEW_SUB_DOMAIN" ] && domains_to_cert+=("$NEW_SUB_DOMAIN")
+    [ -n "$NEW_NODE_DOMAIN" ] && domains_to_cert+=("$NEW_NODE_DOMAIN")
+
+    for d in "${domains_to_cert[@]}"; do
+        echo -e "${COLOR_YELLOW}Получение сертификата для $d...${COLOR_RESET}"
+        get_certificates "$d" "$CERT_METHOD" "$LETSENCRYPT_EMAIL"
+        if ! check_certificates "$d"; then
+            echo -e "${COLOR_RED}Ошибка получения сертификата для $d!${COLOR_RESET}"
+            sleep 2
+            return 1
+        fi
+    done
+
+    echo -e "${COLOR_YELLOW}${LANG[APPLYING_NEW_DOMAINS]:-Применение новых доменов к конфигурациям сервера...}${COLOR_RESET}"
+
+    local PANEL_CERT_DOMAIN=""
+    local SUB_CERT_DOMAIN=""
+    local NODE_CERT_DOMAIN=""
+
+    if [ "$CERT_METHOD" == "1" ] || [ "$CERT_METHOD" == "3" ]; then
+        [ -n "$NEW_PANEL_DOMAIN" ] && PANEL_CERT_DOMAIN=$(extract_domain "$NEW_PANEL_DOMAIN")
+        [ -n "$NEW_SUB_DOMAIN" ] && SUB_CERT_DOMAIN=$(extract_domain "$NEW_SUB_DOMAIN")
+        [ -n "$NEW_NODE_DOMAIN" ] && NODE_CERT_DOMAIN=$(extract_domain "$NEW_NODE_DOMAIN")
+    else
+        PANEL_CERT_DOMAIN="$NEW_PANEL_DOMAIN"
+        SUB_CERT_DOMAIN="$NEW_SUB_DOMAIN"
+        NODE_CERT_DOMAIN="$NEW_NODE_DOMAIN"
+    fi
+
+    if [ "$WEBSERVER_TYPE" = "Nginx" ]; then
+        local nginx_conf="$SERVER_DIR/nginx.conf"
+        if [ -f "$nginx_conf" ]; then
+            if [ -n "$PANEL_DOMAIN_CURRENT" ] && [ -n "$NEW_PANEL_DOMAIN" ]; then
+                sed -i "s/$PANEL_DOMAIN_CURRENT/$NEW_PANEL_DOMAIN/g" "$nginx_conf"
+            fi
+            if [ -n "$SUB_DOMAIN_CURRENT" ] && [ -n "$NEW_SUB_DOMAIN" ]; then
+                sed -i "s/$SUB_DOMAIN_CURRENT/$NEW_SUB_DOMAIN/g" "$nginx_conf"
+            fi
+            if [ -n "$NODE_DOMAIN_CURRENT" ] && [ -n "$NEW_NODE_DOMAIN" ]; then
+                sed -i "s/$NODE_DOMAIN_CURRENT/$NEW_NODE_DOMAIN/g" "$nginx_conf"
+            fi
+
+            if [ -n "$PANEL_CERT_DOMAIN" ]; then
+                sed -i -E "s|/etc/nginx/ssl/[^/]+/fullchain.pem|/etc/nginx/ssl/$PANEL_CERT_DOMAIN/fullchain.pem|g" "$nginx_conf"
+                sed -i -E "s|/etc/nginx/ssl/[^/]+/privkey.pem|/etc/nginx/ssl/$PANEL_CERT_DOMAIN/privkey.pem|g" "$nginx_conf"
+            fi
+        fi
+
+        cd "$SERVER_DIR" || return 1
+        docker compose restart remnawave-nginx > /dev/null 2>&1 &
+        spinner $! "${LANG[WAITING]}"
+    elif [ "$WEBSERVER_TYPE" = "Caddy" ]; then
+        local compose_file="$SERVER_DIR/docker-compose.yml"
+        local caddy_file="$SERVER_DIR/Caddyfile"
+        if [ -f "$compose_file" ]; then
+            [ -n "$NEW_PANEL_DOMAIN" ] && sed -i "s/PANEL_DOMAIN=.*/PANEL_DOMAIN=$NEW_PANEL_DOMAIN/" "$compose_file"
+            [ -n "$NEW_SUB_DOMAIN" ] && sed -i "s/SUB_DOMAIN=.*/SUB_DOMAIN=$NEW_SUB_DOMAIN/" "$compose_file"
+            [ -n "$NEW_NODE_DOMAIN" ] && sed -i "s/SELF_STEAL_DOMAIN=.*/SELF_STEAL_DOMAIN=$NEW_NODE_DOMAIN/" "$compose_file"
+        fi
+        if [ -f "$caddy_file" ]; then
+            [ -n "$PANEL_DOMAIN_CURRENT" ] && [ -n "$NEW_PANEL_DOMAIN" ] && sed -i "s/$PANEL_DOMAIN_CURRENT/$NEW_PANEL_DOMAIN/g" "$caddy_file"
+            [ -n "$SUB_DOMAIN_CURRENT" ] && [ -n "$NEW_SUB_DOMAIN" ] && sed -i "s/$SUB_DOMAIN_CURRENT/$NEW_SUB_DOMAIN/g" "$caddy_file"
+            [ -n "$NODE_DOMAIN_CURRENT" ] && [ -n "$NEW_NODE_DOMAIN" ] && sed -i "s/$NODE_DOMAIN_CURRENT/$NEW_NODE_DOMAIN/g" "$caddy_file"
+        fi
+
+        cd "$SERVER_DIR" || return 1
+        docker compose restart remnawave-caddy > /dev/null 2>&1 &
+        spinner $! "${LANG[WAITING]}"
+    fi
+
+    echo -e "${COLOR_GREEN}${LANG[DOMAINS_UPDATED_SUCCESS]:-✓ Домены и сертификаты успешно обновлены и применены к серверу!}${COLOR_RESET}"
+
+    if [ -n "$NEW_PANEL_DOMAIN" ] && [ -f "$SERVER_DIR/nginx.conf" ]; then
+        local cookie_line
+        cookie_line=$(grep -A 2 "map \$http_cookie \$auth_cookie" "$SERVER_DIR/nginx.conf" | grep "~*\w\+.*=")
+        local cookies_random1
+        cookies_random1=$(echo "$cookie_line" | grep -oP '~*\K\w+(?==)')
+        local cookies_random2
+        cookies_random2=$(echo "$cookie_line" | grep -oP '=\K\w+(?=")')
+        if [ -n "$cookies_random1" ] && [ -n "$cookies_random2" ]; then
+            echo -e ""
+            echo -e "${COLOR_YELLOW}${LANG[NEW_PANEL_LOGIN_LINK]:-Ваша новая ссылка для входа в панель:}${COLOR_RESET}"
+            echo -e "${COLOR_WHITE}https://${NEW_PANEL_DOMAIN}/auth/login?${cookies_random1}=${cookies_random2}${COLOR_RESET}"
+        fi
+    fi
+
+    sleep 3
+}
+
+switch_dns_provider() {
+    echo -e ""
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}       ${LANG[CERT_MENU_OPT_SWITCH_DNS]:-Настройка DNS-провайдера}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_YELLOW}1. ${LANG[DNS_PROVIDER_CF]:-Cloudflare DNS-01 (Wildcard *.<domain>)}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}2. ${LANG[DNS_PROVIDER_GCORE]:-Gcore DNS-01 (Wildcard *.<domain>)}${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}3. ${LANG[DNS_PROVIDER_ACME]:-ACME HTTP-01 (Standalone порт 80)}${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_YELLOW}0. ${LANG[EXIT]}${COLOR_RESET}"
+    echo -e ""
+    reading "${LANG[CERT_METHOD_CHOOSE]}" PROV_CHOICE
+
+    case $PROV_CHOICE in
+        1)
+            reading "${COLOR_YELLOW}${LANG[ENTER_CF_EMAIL]}${COLOR_RESET}" CLOUDFLARE_EMAIL
+            reading "${COLOR_YELLOW}${LANG[ENTER_CF_TOKEN]}${COLOR_RESET}" CLOUDFLARE_API_KEY
+            check_api
+            mkdir -p ~/.secrets/certbot
+            cat > ~/.secrets/certbot/cloudflare.ini <<EOL
+dns_cloudflare_email = $CLOUDFLARE_EMAIL
+dns_cloudflare_api_key = $CLOUDFLARE_API_KEY
+EOL
+            chmod 600 ~/.secrets/certbot/cloudflare.ini
+            echo -e "${COLOR_GREEN}${LANG[DNS_PROVIDER_SWITCHED_SUCCESS]:-✓ Настройки Cloudflare сохранены!}${COLOR_RESET}"
+            ;;
+        2)
+            if ! certbot plugins 2>/dev/null | grep -q "dns-gcore"; then
+                echo -e "${COLOR_YELLOW}Установка плагина certbot-dns-gcore...${COLOR_RESET}"
+                if python3 -m pip install --help 2>&1 | grep -q "break-system-packages"; then
+                    python3 -m pip install --break-system-packages certbot-dns-gcore >/dev/null 2>&1
+                else
+                    python3 -m pip install certbot-dns-gcore >/dev/null 2>&1
+                fi
+            fi
+            reading "${COLOR_YELLOW}${LANG[ENTER_GCORE_TOKEN]}" GCORE_API_KEY
+            mkdir -p ~/.secrets/certbot
+            cat > ~/.secrets/certbot/gcore.ini <<EOL
+dns_gcore_apitoken = $GCORE_API_KEY
+EOL
+            chmod 600 ~/.secrets/certbot/gcore.ini
+            echo -e "${COLOR_GREEN}${LANG[DNS_PROVIDER_SWITCHED_SUCCESS]:-✓ Настройки Gcore сохранены!}${COLOR_RESET}"
+            ;;
+        3)
+            echo -e "${COLOR_GREEN}Выбран режим ACME HTTP-01 (Standalone). Дополнительных ключей API не требуется.${COLOR_RESET}"
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${COLOR_YELLOW}${LANG[INVALID_CHOICE]}${COLOR_RESET}"
+            ;;
+    esac
+    sleep 2
 }
 
 update_current_certificates() {
@@ -2029,8 +2328,7 @@ EOL
     done
 
     sleep 2
-    log_clear
-    remnawave_reverse
+    return 0
 }
 
 generate_new_certificates() {
@@ -2048,7 +2346,7 @@ generate_new_certificates() {
 
     if [ "$CERT_METHOD" == "0" ]; then
         echo -e "${COLOR_YELLOW}${LANG[EXIT]}${COLOR_RESET}"
-        exit 1
+        return 0
     fi
 
     local LETSENCRYPT_EMAIL=""
@@ -2066,7 +2364,7 @@ generate_new_certificates() {
         get_certificates "$NEW_DOMAIN" "2" "$LETSENCRYPT_EMAIL"
     else
         echo -e "${COLOR_RED}${LANG[CERT_INVALID_CHOICE]}${COLOR_RESET}"
-        exit 1
+        return 1
     fi
 
     if check_certificates "$NEW_DOMAIN"; then
@@ -2076,8 +2374,7 @@ generate_new_certificates() {
     fi
 
     sleep 2
-    log_clear
-    remnawave_reverse
+    return 0
 }
 
 check_cert_expiry() {
