@@ -2,8 +2,31 @@
 # Module: IPv6 Management
 
 show_ipv6_menu() {
+    local sysctl_status=$(sysctl -n net.ipv6.conf.all.disable_ipv6 2>/dev/null)
+    local interface_name=$(ip -o link show 2>/dev/null | awk -F': ' '{print $2}' | grep -v lo | head -n 1)
+    local ipv6_addrs=$(ip -6 addr show scope global 2>/dev/null | grep -oP 'inet6 \K[0-9a-fA-F:]+' | head -n 1)
+
     echo -e ""
-    echo -e "${COLOR_GREEN}${LANG[IPV6_MENU_TITLE]}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}               ${LANG[IPV6_MENU_TITLE]}${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
+    
+    if [ "$sysctl_status" = "0" ]; then
+        echo -e " ${COLOR_WHITE}${LANG[IPV6_STATUS_LABEL]}${COLOR_RESET} ${COLOR_GREEN}● ${LANG[IPV6_STATUS_ENABLED]}${COLOR_RESET}"
+    else
+        echo -e " ${COLOR_WHITE}${LANG[IPV6_STATUS_LABEL]}${COLOR_RESET} ${COLOR_RED}○ ${LANG[IPV6_STATUS_DISABLED]}${COLOR_RESET}"
+    fi
+
+    if [ -n "$interface_name" ]; then
+        echo -e " ${COLOR_WHITE}${LANG[IPV6_INTERFACE_LABEL]}${COLOR_RESET} ${COLOR_YELLOW}${interface_name}${COLOR_RESET}"
+    fi
+
+    if [ -n "$ipv6_addrs" ]; then
+        echo -e " ${COLOR_WHITE}${LANG[IPV6_ADDRESS_LABEL]}${COLOR_RESET} ${COLOR_GREEN}${ipv6_addrs}${COLOR_RESET}"
+    else
+        echo -e " ${COLOR_WHITE}${LANG[IPV6_ADDRESS_LABEL]}${COLOR_RESET} ${COLOR_GRAY}${LANG[IPV6_NO_ADDRESS]}${COLOR_RESET}"
+    fi
+    echo -e "${COLOR_GREEN}=================================================${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_YELLOW}1. ${LANG[IPV6_ENABLE]}${COLOR_RESET}"
     echo -e "${COLOR_YELLOW}2. ${LANG[IPV6_DISABLE]}${COLOR_RESET}"
