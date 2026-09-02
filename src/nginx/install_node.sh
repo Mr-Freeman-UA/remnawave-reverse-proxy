@@ -53,7 +53,8 @@ SELFSTEAL_BASE_DOMAIN=$(extract_domain "$SELFSTEAL_DOMAIN")
 
 unique_domains["$SELFSTEAL_BASE_DOMAIN"]=1
 
-cat > docker-compose.yml <<EOL
+mkdir -p /opt/remnanode && cd /opt/remnanode
+cat > /opt/remnanode/docker-compose.yml <<EOL
 x-common: &common
   ulimits:
     nofile:
@@ -173,9 +174,7 @@ EOL
     echo -e "${COLOR_YELLOW}${LANG[STARTING_NODE]}${COLOR_RESET}"
     sleep 3
     cd /opt/remnanode
-    docker compose up -d > /dev/null 2>&1 &
-
-    spinner $! "${LANG[WAITING]}"
+    docker compose up -d
 
     randomhtml
 

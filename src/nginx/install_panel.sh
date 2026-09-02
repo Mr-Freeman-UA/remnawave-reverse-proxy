@@ -45,7 +45,7 @@ install_panel_nginx() {
     JWT_AUTH_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
     JWT_API_TOKENS_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
 
-    cat > .env <<EOL
+    cat > /opt/remnawave/.env <<EOL
 ### APP ###
 APP_PORT=3000
 METRICS_PORT=3001
@@ -146,7 +146,7 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
 EOL
 
-    cat > docker-compose.yml <<EOL
+    cat > /opt/remnawave/docker-compose.yml <<EOL
 x-common: &common
   ulimits:
     nofile:
@@ -184,7 +184,7 @@ services:
     volumes:
       - remnawave-db-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U \$\${POSTGRES_USER} -d \$\${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U \${POSTGRES_USER:-postgres} -d \${POSTGRES_DB:-postgres}']
       interval: 3s
       timeout: 10s
       retries: 3
@@ -445,27 +445,53 @@ EOL
     echo -e "${COLOR_YELLOW}${LANG[STARTING_PANEL]}${COLOR_RESET}"
     sleep 1
     cd /opt/remnawave
-    docker compose up -d > /dev/null 2>&1 &
-
-    spinner $! "${LANG[WAITING]}"
+    local pull_attempts=0
+    local max_pull_attempts=4
+    until docker compose up -d; do
+        pull_attempts=$((pull_attempts + 1))
+        if [ $pull_attempts -ge $max_pull_attempts ]; then
+            echo -e "${COLOR_RED}Ошибка: Не удалось загрузить и запустить контейнеры Docker.${COLOR_RESET}"
+            exit 1
+        fi
+        echo -e "${COLOR_YELLOW}Повторная попытка запуска контейнеров ($pull_attempts/$max_pull_attempts)...${COLOR_RESET}"
+        sleep 3
+    done
 
     local domain_url="127.0.0.1:3000"
     local target_dir="/opt/remnawave"
 
     echo -e "${COLOR_YELLOW}${LANG[REGISTERING_REMNAWAVE]}${COLOR_RESET}"
-    sleep 20
+    sleep 10
 
     echo -e "${COLOR_YELLOW}${LANG[CHECK_CONTAINERS]}${COLOR_RESET}"
     local attempts=0
-    local max_attempts=5
-    until curl -s -f --max-time 10 "http://127.0.0.1:3001/health" > /dev/null; do
+    local max_attempts=30
+    local is_ready=false
+    while [ "$attempts" -lt "$max_attempts" ]; do
         attempts=$((attempts + 1))
-        if [ "$attempts" -ge "$max_attempts" ]; then
-            error "$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)"
+        if curl -s -f --max-time 3 "http://127.0.0.1:3001/health" > /dev/null 2>&1 || \
+           curl -s -f --max-time 3 "http://127.0.0.1:3000/api/auth/status" > /dev/null 2>&1; then
+            is_ready=true
+            echo -e "${COLOR_GREEN}✓ Контейнеры готовы к работе!${COLOR_RESET}"
+            break
         fi
-        echo -e "${COLOR_RED}$(printf "${LANG[CONTAINERS_NOT_READY_ATTEMPT]}" $attempts $max_attempts)${COLOR_RESET}"
-        sleep 60
+        printf "${COLOR_YELLOW}Ожидание готовности панели (попытка %d из %d)...${COLOR_RESET}\r" "$attempts" "$max_attempts"
+        sleep 4
     done
+    echo ""
+
+    if [ "$is_ready" != "true" ]; then
+        echo -e "${COLOR_RED}$(printf "${LANG[CONTAINERS_TIMEOUT]}" $max_attempts)${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Статус контейнеров:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml ps -a
+        echo -e "${COLOR_YELLOW}Логи remnawave:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave --tail 40
+        echo -e "${COLOR_YELLOW}Логи remnawave-db:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave-db --tail 40
+        echo -e "${COLOR_YELLOW}Логи remnawave-redis:${COLOR_RESET}"
+        docker compose -f /opt/remnawave/docker-compose.yml logs remnawave-redis --tail 40
+        exit 1
+    fi
 
     # Register Remnawave
     local token=$(register_remnawave "$domain_url" "$SUPERADMIN_USERNAME" "$SUPERADMIN_PASSWORD")

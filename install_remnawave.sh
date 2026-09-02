@@ -5,8 +5,9 @@ SCRIPT_AUTHOR="Mr-Freeman-UA"
 UPDATE_AVAILABLE=false
 DIR_REMNAWAVE="/usr/local/remnawave_reverse/"
 LANG_FILE="${DIR_REMNAWAVE}selected_language"
-SCRIPT_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/install_remnawave.sh"
-LANG_BASE_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/src/lang"
+SCRIPT_BRANCH="2.7.4"
+SCRIPT_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${SCRIPT_BRANCH}/install_remnawave.sh"
+LANG_BASE_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${SCRIPT_BRANCH}/src/lang"
 
 COLOR_RESET="\033[0m"
 COLOR_GREEN="\033[1;32m"
@@ -24,8 +25,8 @@ download_with_mirrors() {
     # Mirror URLs (GitHub raw content proxies)
     local mirrors=(
         "$file_url"
-        "https://cdn.jsdelivr.net/gh/Mr-Freeman-UA/remnawave-reverse-proxy@main/${file_url#*main/}"
-        "https://raw.githack.com/Mr-Freeman-UA/remnawave-reverse-proxy/main/${file_url#*main/}"
+        "https://cdn.jsdelivr.net/gh/Mr-Freeman-UA/remnawave-reverse-proxy@${SCRIPT_BRANCH}/${file_url#*${SCRIPT_BRANCH}/}"
+        "https://raw.githack.com/Mr-Freeman-UA/remnawave-reverse-proxy/${SCRIPT_BRANCH}/${file_url#*${SCRIPT_BRANCH}/}"
         "https://ghproxy.com/${file_url}"
     )
     
@@ -2674,7 +2675,7 @@ load_module() {
     local module_name="$1"
     local module_type="${2:-modules}"
     local module_file="${DIR_REMNAWAVE}${module_type}/${module_name}.sh"
-    local module_url="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/src/${module_type}/${module_name}.sh"
+    local module_url="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${SCRIPT_BRANCH:-2.7.4}/src/${module_type}/${module_name}.sh"
     local force_update="${3:-false}"
 
     if [ "$force_update" = "true" ] || [ ! -f "$module_file" ]; then
@@ -2727,18 +2728,18 @@ load_module() {
 }
 
 # Module loaders (wrappers for load_module)
-load_install_panel_node_module() { load_module "install_panel_node" "nginx" "${1:-false}"; }
-load_install_panel_module() { load_module "install_panel" "nginx" "${1:-false}"; }
-load_install_node_module() { load_module "install_node" "nginx" "${1:-false}"; }
-load_add_node_module() { load_module "add_node" "modules" "${1:-false}"; }
-load_manage_panel_module() { load_module "manage_panel" "modules" "${1:-false}"; }
-load_api_module() { load_module "remnawave_api" "api" "${1:-false}"; }
-load_caddy_module() { load_module "install_panel_node" "caddy" "${1:-false}"; }
-load_caddy_panel_module() { load_module "install_panel" "caddy" "${1:-false}"; }
-load_caddy_node_module() { load_module "install_node" "caddy" "${1:-false}"; }
-load_warp_module() { load_module "warp" "modules" "${1:-false}"; }
-load_ipv6_module() { load_module "ipv6" "modules" "${1:-false}"; }
-load_selfsteal_templates_module() { load_module "selfsteal_templates" "modules" "${1:-false}"; }
+load_install_panel_node_module() { load_module "install_panel_node" "nginx" "${1:-true}"; }
+load_install_panel_module() { load_module "install_panel" "nginx" "${1:-true}"; }
+load_install_node_module() { load_module "install_node" "nginx" "${1:-true}"; }
+load_add_node_module() { load_module "add_node" "modules" "${1:-true}"; }
+load_manage_panel_module() { load_module "manage_panel" "modules" "${1:-true}"; }
+load_api_module() { load_module "remnawave_api" "api" "${1:-true}"; }
+load_caddy_module() { load_module "install_panel_node" "caddy" "${1:-true}"; }
+load_caddy_panel_module() { load_module "install_panel" "caddy" "${1:-true}"; }
+load_caddy_node_module() { load_module "install_node" "caddy" "${1:-true}"; }
+load_warp_module() { load_module "warp" "modules" "${1:-true}"; }
+load_ipv6_module() { load_module "ipv6" "modules" "${1:-true}"; }
+load_selfsteal_templates_module() { load_module "selfsteal_templates" "modules" "${1:-true}"; }
 
 log_entry
 
