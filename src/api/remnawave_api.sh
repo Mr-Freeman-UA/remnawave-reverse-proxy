@@ -131,8 +131,8 @@ get_public_key() {
         echo -e "${COLOR_RED}${LANG[ERROR_PUBLIC_KEY]}${COLOR_RESET}"
     fi
 
-    local pubkey=$(echo "$api_response" | jq -r '.response.pubKey')
-    if [ -z "$pubkey" ]; then
+    local pubkey=$(echo "$api_response" | jq -r '.response.pubKey // .response.secretKey // .secretKey // ""')
+    if [ -z "$pubkey" ] || [ "$pubkey" = "null" ]; then
         echo -e "${COLOR_RED}${LANG[ERROR_EXTRACT_PUBLIC_KEY]}${COLOR_RESET}"
     fi
 
@@ -466,7 +466,7 @@ create_api_token() {
     local target_dir=$3
     local token_name="${4:-subscription-page}"
 
-    local token_data='{"tokenName":"'"$token_name"'"}'
+    local token_data='{"tokenName":"'"$token_name"'","name":"'"$token_name"'"}'
     local api_response=
     api_response=$(make_api_request "POST" "http://$domain_url/api/tokens" "$token" "$token_data")
 
@@ -476,7 +476,7 @@ create_api_token() {
     fi
 
     local api_token
-    api_token=$(echo "$api_response" | jq -r '.response.token // .response.token // ""')
+    api_token=$(echo "$api_response" | jq -r '.response.token // .response.apiToken // .token // ""')
     if [ -z "$api_token" ] || [ "$api_token" = "null" ]; then
         echo -e "${COLOR_RED}${LANG[ERROR_CREATE_API_TOKEN]}: $(echo "$api_response" | jq -r '.message // "Unknown error"')" >&2
         return 1

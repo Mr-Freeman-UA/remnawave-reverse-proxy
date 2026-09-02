@@ -1,12 +1,13 @@
 #!/bin/bash
 
-SCRIPT_VERSION="2.7.4"
+SCRIPT_VERSION="3.3.0"
 SCRIPT_AUTHOR="Mr-Freeman-UA"
+GITHUB_BRANCH="3.3.0"
 UPDATE_AVAILABLE=false
 DIR_REMNAWAVE="/usr/local/remnawave_reverse/"
 LANG_FILE="${DIR_REMNAWAVE}selected_language"
-SCRIPT_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/install_remnawave.sh"
-LANG_BASE_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/src/lang"
+SCRIPT_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${GITHUB_BRANCH}/install_remnawave.sh"
+LANG_BASE_URL="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${GITHUB_BRANCH}/src/lang"
 
 COLOR_RESET="\033[0m"
 COLOR_GREEN="\033[1;32m"
@@ -24,8 +25,8 @@ download_with_mirrors() {
     # Mirror URLs (GitHub raw content proxies)
     local mirrors=(
         "$file_url"
-        "https://cdn.jsdelivr.net/gh/Mr-Freeman-UA/remnawave-reverse-proxy@main/${file_url#*main/}"
-        "https://raw.githack.com/Mr-Freeman-UA/remnawave-reverse-proxy/main/${file_url#*main/}"
+        "https://cdn.jsdelivr.net/gh/Mr-Freeman-UA/remnawave-reverse-proxy@${GITHUB_BRANCH}/${file_url#*heads/*/}"
+        "https://raw.githack.com/Mr-Freeman-UA/remnawave-reverse-proxy/${GITHUB_BRANCH}/${file_url#*heads/*/}"
         "https://ghproxy.com/${file_url}"
     )
     
@@ -465,9 +466,9 @@ install_script_if_missing() {
                 echo -e "${COLOR_RED}${LANG[SOURCE_EGAMES]:-Источник: eGamesAPI (оригинальный скрипт)}${COLOR_RESET}"
             fi
             printf "${COLOR_GREEN}${LANG[CURRENT_SUPPORTED_VERSION]:-Текущая поддерживаемая версия: %s (Mr-Freeman-UA)}${COLOR_RESET}\n" "$SCRIPT_VERSION"
-            printf "${COLOR_YELLOW}${LANG[RECOMMEND_SYNC_FILES]:-Рекомендуется синхронизировать файлы в %s для корректной работы с панелью 2.7.4.}${COLOR_RESET}\n" "${DIR_REMNAWAVE}"
+            printf "${COLOR_YELLOW}${LANG[RECOMMEND_SYNC_FILES]:-Рекомендуется синхронизировать файлы в %s для корректной работы с панелью %s.}${COLOR_RESET}\n" "${DIR_REMNAWAVE}" "$SCRIPT_VERSION"
             echo -e "${COLOR_YELLOW}=================================================${COLOR_RESET}"
-            reading "$(printf "${LANG[REPLACE_PROMPT]:-Заменить файлы в %s на версию 2.7.4? (y/n): }" "${DIR_REMNAWAVE}")" replace_confirm
+            reading "$(printf "${LANG[REPLACE_PROMPT]:-Заменить файлы в %s на версию %s? (y/n): }" "${DIR_REMNAWAVE}" "$SCRIPT_VERSION")" replace_confirm
             if [[ "$replace_confirm" == "y" || "$replace_confirm" == "Y" || -z "$replace_confirm" ]]; then
                 printf "${COLOR_YELLOW}${LANG[REPLACING_FILES]:-Обновление файлов скрипта до версии %s...}${COLOR_RESET}\n" "$SCRIPT_VERSION"
                 rm -rf "${DIR_REMNAWAVE}nginx" "${DIR_REMNAWAVE}caddy" "${DIR_REMNAWAVE}api" "${DIR_REMNAWAVE}modules" "${DIR_REMNAWAVE}lang"
@@ -2674,7 +2675,7 @@ load_module() {
     local module_name="$1"
     local module_type="${2:-modules}"
     local module_file="${DIR_REMNAWAVE}${module_type}/${module_name}.sh"
-    local module_url="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/main/src/${module_type}/${module_name}.sh"
+    local module_url="https://raw.githubusercontent.com/Mr-Freeman-UA/remnawave-reverse-proxy/refs/heads/${GITHUB_BRANCH}/src/${module_type}/${module_name}.sh"
     local force_update="${3:-false}"
 
     if [ "$force_update" = "true" ] || [ ! -f "$module_file" ]; then

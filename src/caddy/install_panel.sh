@@ -42,8 +42,7 @@ install_panel_caddy() {
     METRICS_USER=$(generate_user)
     METRICS_PASS=$(generate_user)
 
-    JWT_AUTH_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
-    JWT_API_TOKENS_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
+    APP_SECRET=$(openssl rand -hex 64)
     API_TOKEN=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
 
     cat > .env <<EOL
@@ -54,7 +53,7 @@ METRICS_PORT=3001
 ### API ###
 # Possible values: max (start instances on all cores), number (start instances on number of cores), -1 (start instances on all cores - 1)
 # !!! Do not set this value more than physical cores count in your machine !!!
-# Review documentation: https://remna.st/docs/install/environment-variables#scaling-api
+# Review documentation: https://docs.rw/install/environment-variables#scaling-api
 API_INSTANCES=1
 
 ### DATABASE ###
@@ -67,13 +66,8 @@ REDIS_SOCKET=/var/run/valkey/valkey.sock
 #REDIS_HOST=
 #REDIS_PORT=
 
-### JWT ###
-JWT_AUTH_SECRET=$JWT_AUTH_SECRET
-JWT_API_TOKENS_SECRET=$JWT_API_TOKENS_SECRET
-
-# Set the session idle timeout in the panel to avoid daily logins.
-# Value in hours: 12–168
-JWT_AUTH_LIFETIME=168
+### Secrets ###
+APP_SECRET=$APP_SECRET
 
 ### TELEGRAM NOTIFICATIONS ###
 IS_TELEGRAM_NOTIFICATIONS_ENABLED=false
@@ -94,20 +88,15 @@ TELEGRAM_NOTIFY_TBLOCKER=change_me
 
 ### FRONT_END ###
 # Used by CORS, you can leave it as * or place your domain there
-FRONT_END_DOMAIN=$PANEL_DOMAIN
+FRONT_END_DOMAIN=*
 
 ### SUBSCRIPTION PUBLIC DOMAIN ###
 ### DOMAIN, WITHOUT HTTP/HTTPS, DO NOT ADD / AT THE END ###
 ### Used in "profile-web-page-url" response header and in UI/API ###
-### Review documentation: https://remna.st/docs/install/environment-variables#domains
+### Review documentation: https://docs.rw/install/environment-variables#domains
 SUB_PUBLIC_DOMAIN=$SUB_DOMAIN
 
 ### If CUSTOM_SUB_PREFIX is set in @remnawave/subscription-page, append the same path to SUB_PUBLIC_DOMAIN. Example: SUB_PUBLIC_DOMAIN=sub-page.example.com/sub ###
-
-### SWAGGER ###
-SWAGGER_PATH=/docs
-SCALAR_PATH=/scalar
-IS_DOCS_ENABLED=false
 
 ### PROMETHEUS ###
 ### Metrics are available at http://127.0.0.1:METRICS_PORT/metrics
@@ -171,9 +160,10 @@ x-env: &env
 
 services:
   remnawave-db:
-    image: postgres:18.3
+    image: postgres:18.4
     container_name: 'remnawave-db'
     hostname: remnawave-db
+    shm_size: 512mb
     <<: [*common, *logging, *env, *networks]
     environment:
       - POSTGRES_USER=\${POSTGRES_USER}
@@ -191,7 +181,7 @@ services:
       retries: 3
 
   remnawave:
-    image: remnawave/backend:2.7.4
+    image: remnawave/backend:3
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env, *networks]
@@ -259,7 +249,7 @@ services:
           start_period: 5s
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:7.2.1
+    image: remnawave/subscription-page:latest
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     <<: [*common, *logging, *networks]

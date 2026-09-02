@@ -114,7 +114,7 @@ installation_node() {
     command: sh -c 'rm -f /dev/shm/nginx.sock && exec nginx -g "daemon off;"'
 
   remnanode:
-    image: remnawave/node:2.8.0
+    image: remnawave/node:3
     container_name: remnanode
     hostname: remnanode
     <<: [*common, *logging]
@@ -143,6 +143,28 @@ ssl_prefer_server_ciphers on;
 ssl_session_timeout 1d;
 ssl_session_cache shared:MozSSL:10m;
 ssl_session_tickets off;
+
+# Gzip Compression
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_min_length 1024;
+gzip_types
+    application/javascript
+    application/json
+    application/manifest+json
+    application/xml
+    application/wasm
+    font/opentype
+    font/eot
+    font/otf
+    font/ttf
+    image/svg+xml
+    text/css
+    text/javascript
+    text/plain
+    text/xml;
 
 server {
     server_name $SELFSTEAL_DOMAIN;
