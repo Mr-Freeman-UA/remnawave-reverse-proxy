@@ -54,7 +54,7 @@ randomhtml() {
     unzip -o main.zip &>/dev/null || { echo "${LANG[UNPACK_ERROR]}"; exit 0; }
     rm -f main.zip
 
-    if [[ "$selected_url" == *"Mr-Freeman-UA"* ]]; then
+    if [[ "$selected_url" == *"simple-web-templates"* ]]; then
         cd simple-web-templates-main/ || { echo "${LANG[UNPACK_ERROR]}"; exit 0; }
         rm -rf assets ".gitattributes" "README.md" "_config.yml" 2>/dev/null
     elif [[ "$selected_url" == *"nothing-sni"* ]]; then
@@ -76,7 +76,7 @@ randomhtml() {
         RandomHTML="${templates[$RANDOM % ${#templates[@]}]}"
     fi
 
-    if [[ "$selected_url" == *"distillium"* && "$RandomHTML" == "503 error pages" ]]; then
+    if [[ "$selected_url" == *"sni-templates"* && "$RandomHTML" == "503 error pages" ]]; then
         cd "$RandomHTML" || { echo "${LANG[UNPACK_ERROR]}"; exit 0; }
         versions=("v1" "v2")
         RandomVersion="${versions[$RANDOM % ${#versions[@]}]}"
