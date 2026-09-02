@@ -229,7 +229,7 @@ update_remnawave_reverse() {
     if [ -f "$update_script" ]; then
         if [ "$SCRIPT_VERSION" = "$remote_version" ]; then
             printf "${COLOR_GREEN}${LANG[LATEST_VERSION]}${COLOR_RESET}\n" "$SCRIPT_VERSION"
-            reading "${LANG[FORCE_SYNC_PROMPT]}" force_sync
+            reading "${LANG[FORCE_SYNC_PROMPT]:-Обновить и перезагрузить все модули с GitHub? (y/n)}" force_sync
             if [[ "$force_sync" != "y" && "$force_sync" != "Y" ]]; then
                 return 0
             fi
