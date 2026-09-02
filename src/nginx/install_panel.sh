@@ -159,7 +159,7 @@ x-env: &env
 
 services:
   remnawave-db:
-    image: postgres:18.4
+    image: postgres:17-alpine
     container_name: 'remnawave-db'
     hostname: remnawave-db
     shm_size: 512mb
@@ -172,9 +172,9 @@ services:
     ports:
       - '127.0.0.1:6767:5432'
     volumes:
-      - remnawave-db-data:/var/lib/postgresql
+      - remnawave-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U \$\${POSTGRES_USER} -d \$\${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U \${POSTGRES_USER:-postgres} -d \${POSTGRES_DB:-postgres}']
       interval: 3s
       timeout: 10s
       retries: 3
