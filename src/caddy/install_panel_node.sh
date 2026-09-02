@@ -415,7 +415,17 @@ installation_panel_node_caddy() {
     sleep 1
     cd /opt/remnawave
     ufw allow 80/tcp comment 'HTTP' > /dev/null 2>&1
-    docker compose up -d
+    local pull_attempts=0
+    local max_pull_attempts=4
+    until docker compose up -d; do
+        pull_attempts=$((pull_attempts + 1))
+        if [ $pull_attempts -ge $max_pull_attempts ]; then
+            echo -e "${COLOR_RED}Ошибка: Не удалось загрузить и запустить контейнеры Docker.${COLOR_RESET}"
+            exit 1
+        fi
+        echo -e "${COLOR_YELLOW}Повторная попытка запуска контейнеров ($pull_attempts/$max_pull_attempts)...${COLOR_RESET}"
+        sleep 3
+    done
 
     remnawave_network_subnet=172.30.0.0/16
     ufw allow from "$remnawave_network_subnet" to any port 2222 proto tcp > /dev/null 2>&1
