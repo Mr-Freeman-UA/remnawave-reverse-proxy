@@ -234,22 +234,18 @@ EOF
 }
 
 get_config_profiles() {
-    local domain_url="$1"
-    local token="$2"
+    local domain_url=$1
+    local token=$2
 
     local config_response=$(make_api_request "GET" "http://$domain_url/api/config-profiles" "$token")
-    if [ -z "$config_response" ] || ! echo "$config_response" | jq -e '.' > /dev/null 2>&1; then
-        echo -e "${COLOR_RED}${LANG[ERROR_NO_CONFIGS]}${COLOR_RESET}"
-        return 1
-    fi
-
-    local profile_uuid=$(echo "$config_response" | jq -r '.response.configProfiles[] | select(.name == "Default-Profile") | .uuid' 2>/dev/null)
-    if [ -z "$profile_uuid" ]; then
-        echo -e "${COLOR_YELLOW}${LANG[NO_DEFAULT_PROFILE]}${COLOR_RESET}"
+    if [ -z "$config_response" ]; then
         return 0
     fi
 
-    echo "$profile_uuid"
+    local profile_uuid=$(echo "$config_response" | jq -r '(.response.configProfiles // .response // [])[] | select(.name == "Default-Profile" or .name == "default") | .uuid' 2>/dev/null | head -n 1)
+    if [ -n "$profile_uuid" ] && [ "$profile_uuid" != "null" ]; then
+        echo "$profile_uuid"
+    fi
     return 0
 }
 
@@ -260,17 +256,11 @@ delete_config_profile() {
 
     if [ -z "$profile_uuid" ]; then
         profile_uuid=$(get_config_profiles "$domain_url" "$token")
-        if [ $? -ne 0 ] || [ -z "$profile_uuid" ]; then
-            return 0
-        fi
     fi
 
-    local delete_response=$(make_api_request "DELETE" "http://$domain_url/api/config-profiles/$profile_uuid" "$token")
-    if [ -z "$delete_response" ] || ! echo "$delete_response" | jq -e '.' > /dev/null 2>&1; then
-        echo -e "${COLOR_RED}${LANG[ERROR_DELETE_PROFILE]}${COLOR_RESET}"
-        return 1
+    if [ -n "$profile_uuid" ] && [ "$profile_uuid" != "null" ]; then
+        make_api_request "DELETE" "http://$domain_url/api/config-profiles/$profile_uuid" "$token" > /dev/null 2>&1
     fi
-
     return 0
 }
 
@@ -466,7 +456,7 @@ create_api_token() {
     local target_dir=$3
     local token_name="${4:-subscription-page}"
 
-    local token_data='{"tokenName":"'"$token_name"'","name":"'"$token_name"'"}'
+    local token_data='{"name":"'"$token_name"'","expiresInDays":365,"scopes":["*"]}'
     local api_response=
     api_response=$(make_api_request "POST" "http://$domain_url/api/tokens" "$token" "$token_data")
 
